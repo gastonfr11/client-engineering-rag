@@ -13,8 +13,11 @@ WATSONX_APIKEY  = os.getenv("WATSONX_APIKEY")
 WATSONX_PROJECT = os.getenv("WATSONX_PROJECT_ID")
 
 #conexión a ChromaDB
-client     = chromadb.HttpClient(host="http://localhost:8000")
-collection = client.get_collection(name="watsonx_docs")
+client = chromadb.HttpClient(host="http://chroma:8000")
+try:
+    collection = client.get_collection(name="watsonx_docs")
+except chromadb.errors.NotFoundError:
+    collection = client.create_collection(name="watsonx_docs")
 
 #cliente de embeddings
 embedder = WatsonxEmbeddings(

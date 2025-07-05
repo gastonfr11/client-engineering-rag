@@ -67,10 +67,9 @@ chunks = [
     " ".join(words[i : i + max_words])
     for i in range(0, len(words), max_words)
 ]
-print(f"➡️ Generados {len(chunks)} chunks de ~{max_words} palabras.")
+print(f"Generados {len(chunks)} chunks de ~{max_words} palabras.")
 
-# 3. INDEXA CON EMBEDDINGS
-# (igual que antes)
+#enviamos a batch todos los fragmentos y recibimos una lista de vectores, uno por chunk.
 embeddings = embedder.embed_documents(chunks)
 for idx, (text, emb) in enumerate(zip(chunks, embeddings)):
     collection.add(
@@ -79,5 +78,5 @@ for idx, (text, emb) in enumerate(zip(chunks, embeddings)):
         documents=[text],
         metadatas=[{"length": len(text.split())}],
     )
-print(f"✅ Indexados {len(chunks)} chunks en ChromaDB.")
+print(f"Indexados {len(chunks)} chunks en ChromaDB.")
 

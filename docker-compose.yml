@@ -1,0 +1,22 @@
+services:
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    container_name: chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chroma_db:/app/db
+
+  backend:
+    build:
+      context: ./source/back-end
+      dockerfile: Dockerfile
+    container_name: rag-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - WATSONX_URL=${WATSONX_URL}
+      - WATSONX_PROJECT_ID=${WATSONX_PROJECT_ID}
+      - WATSONX_APIKEY=${WATSONX_APIKEY}
+    depends_on:
+      - chroma
