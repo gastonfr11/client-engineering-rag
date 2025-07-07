@@ -1,8 +1,9 @@
+import os
+import chromadb
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import os
 from dotenv import load_dotenv
-import chromadb
 from langchain_ibm import WatsonxEmbeddings, WatsonxLLM
 from pathlib import Path
 
@@ -13,7 +14,9 @@ WATSONX_APIKEY  = os.getenv("WATSONX_APIKEY")
 WATSONX_PROJECT = os.getenv("WATSONX_PROJECT_ID")
 
 #conexión a ChromaDB
-client = chromadb.HttpClient(host="http://chroma:8000")
+CHROMA_HOST = os.getenv("CHROMA_HOST", "http://localhost:8000")
+client     = chromadb.HttpClient(host=CHROMA_HOST)
+
 try:
     collection = client.get_collection(name="watsonx_docs")
 except chromadb.errors.NotFoundError:
@@ -43,25 +46,47 @@ class Query(BaseModel):
 
 @app.post("/ask")
 def ask(q: Query):
+    # Embedding de la pregunta
     q_emb = embedder.embed_query(q.question)
 
-
+    # Búsqueda semántica (solo traigo metadatos)
     results = collection.query(
         query_embeddings=[q_emb],
         n_results=q.k,
         include=["documents", "metadatas"]
     )
-    docs = results["documents"][0]        
-    metas = results["metadatas"][0]       
+    print(">>> RAW METADATAS:", results["metadatas"])
+    docs = results["documents"][0]
+    metas = results["metadatas"][0]
 
     if not docs:
-        raise HTTPException(status_code=404, detail="No se encontraron documentos.")
+        raise HTTPException(404, "No documents found.")
 
-
+    # Construyo un prompt
     context = "\n\n---\n\n".join(docs)
-    prompt  = f"Con la siguiente información de contexto:\n\n{context}\n\nResponde la pregunta: {q.question}"
+    prompt = f"""
+You are an AI assistant. Using ONLY the context below, write a detailed, well-structured answer in 2–3 paragraphs.
+Then list your sources in a numbered list, giving only page numbers and section titles.
 
-    response = llm.generate([prompt])  
+--- CONTEXT BEGIN ---
+{context}
+--- CONTEXT END ---
+
+QUESTION: {q.question}
+"""
+
+    # Generación
+    response = llm.generate([prompt])
     answer = response.generations[0][0].text.strip()
 
-    return {"answer": answer, "sources": docs}
+    # Formateo de fuentes
+    sources = []
+    for m in metas:
+        page = m.get("page", "unknown")
+        section = m.get("section")
+        if section:
+            sources.append(f"Page {page}, Section “{section}”")
+        else:
+            sources.append(f"Page {page}")
+    
+    return {"answer": answer, "sources": sources}

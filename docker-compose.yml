@@ -18,5 +18,6 @@ services:
       - WATSONX_URL=${WATSONX_URL}
       - WATSONX_PROJECT_ID=${WATSONX_PROJECT_ID}
       - WATSONX_APIKEY=${WATSONX_APIKEY}
+      - CHROMA_HOST=http://chroma:8000
     depends_on:
       - chroma

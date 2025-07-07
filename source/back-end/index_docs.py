@@ -28,10 +28,10 @@ client = chromadb.HttpClient(host="http://localhost:8000")
 #queremos obtener la colección watsonx_docs. Si existe la obtenemos, sino la creamos.
 try:
     collection = client.get_collection(name="watsonx_docs")
-    print("Colección 'watsonx_docs' recuperada.")
+    print("Colection 'watsonx_docs' recovered.")
 except Exception:
     collection = client.create_collection(name="watsonx_docs")
-    print("Colección 'watsonx_docs' creada.")
+    print("Colection 'watsonx_docs' created.")
 
 #LOCALIZAR PDF (para poder acceder de forma dinámica)
 
@@ -44,19 +44,13 @@ pdf_files = list(assets_dir.glob("*.pdf"))
 if not pdf_files:
     raise FileNotFoundError(f"No encontré ningún PDF en {assets_dir}")
 if len(pdf_files) > 1:
-    print("Hay más de un PDF en assets, uso el primero encontrado.")
+    print("There is more than 1 PDF in assets, using the first one found")
 pdf_file = pdf_files[0]
-print(f"Usando el PDF: {pdf_file.name}")
+print(f"Using PDF: {pdf_file.name}")
 
 #abrimos el pdf encontrado y extraemos el texto, teniendo en full text un único string con todo el texto
 with pdfplumber.open(pdf_file) as pdf:
     full_text = "\n\n".join(page.extract_text() or "" for page in pdf.pages)
-
-from pathlib import Path
-import pdfplumber
-from dotenv import load_dotenv
-import chromadb
-from langchain_ibm import WatsonxEmbeddings
 
 #CHUNKING
 
@@ -67,7 +61,7 @@ chunks = [
     " ".join(words[i : i + max_words])
     for i in range(0, len(words), max_words)
 ]
-print(f"Generados {len(chunks)} chunks de ~{max_words} palabras.")
+print(f"Generated {len(chunks)} chunks of ~{max_words} words.")
 
 #enviamos a batch todos los fragmentos y recibimos una lista de vectores, uno por chunk.
 embeddings = embedder.embed_documents(chunks)
@@ -78,5 +72,6 @@ for idx, (text, emb) in enumerate(zip(chunks, embeddings)):
         documents=[text],
         metadatas=[{"length": len(text.split())}],
     )
-print(f"Indexados {len(chunks)} chunks en ChromaDB.")
+print(f"Generated {len(chunks)} chunks of ~{max_words} words.")
+
 
