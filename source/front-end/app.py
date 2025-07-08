@@ -26,7 +26,7 @@ if st.button("Ask"):
         else:
             # Mostrar respuesta
             st.subheader("Answer")
-            st.text_area("Answer", value=data["answer"], height=300)
+            st.text_area("Answer", value=data["answer"], height=300,disabled=True)
             
             st.subheader("Sources")
             for i, src in enumerate(data["sources"], 1):

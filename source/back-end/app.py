@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from langchain_ibm import WatsonxEmbeddings, WatsonxLLM
 from pathlib import Path
 
+
 #carga variables de entorno
 load_dotenv()
 WATSONX_URL     = os.getenv("WATSONX_URL")
@@ -77,6 +78,7 @@ def ask(q: Query):
 
     if not docs:
         raise HTTPException(404, "No documents found.")
+    
 
     # Construyo un prompt
     context = "\n\n---\n\n".join(docs)
