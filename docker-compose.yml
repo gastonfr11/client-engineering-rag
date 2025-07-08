@@ -21,3 +21,17 @@ services:
       - CHROMA_HOST=http://chroma:8000
     depends_on:
       - chroma
+    volumes:
+      - ./assets:/assets
+  
+  frontend:
+    build:
+      context: ./source/front-end
+      dockerfile: Dockerfile
+    container_name: rag-frontend
+    ports:
+      - "8501:8501"     
+    environment:
+      - BACKEND_URL=http://backend:8080
+    depends_on:
+      - backend

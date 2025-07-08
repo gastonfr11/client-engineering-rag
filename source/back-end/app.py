@@ -2,6 +2,7 @@ import os
 import chromadb
 
 from fastapi import FastAPI, HTTPException
+from ibm_watsonx_ai.metanames import GenTextParamsMetaNames
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_ibm import WatsonxEmbeddings, WatsonxLLM
@@ -13,8 +14,17 @@ WATSONX_URL     = os.getenv("WATSONX_URL")
 WATSONX_APIKEY  = os.getenv("WATSONX_APIKEY")
 WATSONX_PROJECT = os.getenv("WATSONX_PROJECT_ID")
 
+
+
 #conexión a ChromaDB
 CHROMA_HOST = os.getenv("CHROMA_HOST", "http://localhost:8000")
+
+app = FastAPI()
+
+@app.on_event("startup")
+def startup_event():
+    import index_docs  
+
 client     = chromadb.HttpClient(host=CHROMA_HOST)
 
 try:
@@ -30,15 +40,23 @@ embedder = WatsonxEmbeddings(
     model_id="ibm/granite-embedding-107m-multilingual"
 )
 
-#cliente de LLM para generación de texto
+
+parameters = {
+    GenTextParamsMetaNames.MAX_NEW_TOKENS: 512,    
+    GenTextParamsMetaNames.MIN_NEW_TOKENS: 1,
+    GenTextParamsMetaNames.TEMPERATURE: 0.2,       
+}
+
+
 llm = WatsonxLLM(
     url=WATSONX_URL,
     apikey=WATSONX_APIKEY,
     project_id=WATSONX_PROJECT,
-    model_id="ibm/granite-3-2b-instruct"       
+    model_id="ibm/granite-3-2b-instruct",
+    params=parameters,  
 )
 
-app = FastAPI()
+
 
 class Query(BaseModel):
     question: str
@@ -66,7 +84,6 @@ def ask(q: Query):
     context = "\n\n---\n\n".join(docs)
     prompt = f"""
 You are an AI assistant. Using ONLY the context below, write a detailed, well-structured answer in 2–3 paragraphs.
-Then list your sources in a numbered list, giving only page numbers and section titles.
 
 --- CONTEXT BEGIN ---
 {context}

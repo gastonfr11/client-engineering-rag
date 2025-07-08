@@ -23,7 +23,8 @@ embedder = WatsonxEmbeddings(
 )
 
 #client se concecta a chromaDB
-client = chromadb.HttpClient(host="http://localhost:8000")
+CHROMA_HOST = os.getenv("CHROMA_HOST", "http://localhost:8000")
+client = chromadb.HttpClient(host=CHROMA_HOST)
 
 #queremos obtener la colección watsonx_docs. Si existe la obtenemos, sino la creamos.
 try:
@@ -36,10 +37,10 @@ except Exception:
 #LOCALIZAR PDF (para poder acceder de forma dinámica)
 
 #sube dos carpetas para ir a la raíz
-REPO_ROOT = Path(__file__).parents[2]
+BASE_DIR   = Path(__file__).parent
 
 #assets_dir es la carpeta assets que está en la raíz. La idea es listar todos los PDF, idealmente tiene que haber uno solo.
-assets_dir = REPO_ROOT / "assets"
+assets_dir = BASE_DIR.parent / "assets"
 pdf_files = list(assets_dir.glob("*.pdf"))
 if not pdf_files:
     raise FileNotFoundError(f"No encontré ningún PDF en {assets_dir}")
@@ -48,30 +49,34 @@ if len(pdf_files) > 1:
 pdf_file = pdf_files[0]
 print(f"Using PDF: {pdf_file.name}")
 
-#abrimos el pdf encontrado y extraemos el texto, teniendo en full text un único string con todo el texto
-with pdfplumber.open(pdf_file) as pdf:
-    full_text = "\n\n".join(page.extract_text() or "" for page in pdf.pages)
-
-#CHUNKING
-
-#separamos en una lista de palabras, con un máximo de 100 para no pasarnos
-words = full_text.split()
+# Parámetro de tamaño
 max_words = 100
-chunks = [
-    " ".join(words[i : i + max_words])
-    for i in range(0, len(words), max_words)
-]
-print(f"Generated {len(chunks)} chunks of ~{max_words} words.")
 
-#enviamos a batch todos los fragmentos y recibimos una lista de vectores, uno por chunk.
-embeddings = embedder.embed_documents(chunks)
-for idx, (text, emb) in enumerate(zip(chunks, embeddings)):
+# 1) Generar lista de tuplas (page_num, texto_chunk)
+chunks_with_pages = []
+with pdfplumber.open(pdf_file) as pdf:
+    for page_num, page in enumerate(pdf.pages, start=1):
+        text = page.extract_text() or ""
+        words = text.split()
+        for i in range(0, len(words), max_words):
+            chunk = " ".join(words[i : i + max_words])
+            chunks_with_pages.append((page_num, chunk))
+
+print(f"Generated {len(chunks_with_pages)} chunks of ~{max_words} words.")
+
+# 2) Pedir embeddings solo del texto
+texts = [chunk for _, chunk in chunks_with_pages]
+embeddings = embedder.embed_documents(texts)
+
+# 3) Subir cada chunk junto con su página al metadata
+for idx, ((page_num, chunk), emb) in enumerate(zip(chunks_with_pages, embeddings)):
     collection.add(
         ids=[f"chunk_{idx}"],
         embeddings=[emb],
-        documents=[text],
-        metadatas=[{"length": len(text.split())}],
+        documents=[chunk],
+        metadatas=[{"page": page_num, "length": len(chunk.split())}],
     )
-print(f"Generated {len(chunks)} chunks of ~{max_words} words.")
+
+print("Indexaction Completed.")
 
 

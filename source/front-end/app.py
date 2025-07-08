@@ -1,8 +1,9 @@
+import os
 import streamlit as st
 import requests
-
 #Configuración de la URL de la API
-API_URL = "http://localhost:8080/ask"
+BACKEND_BASE = os.getenv("BACKEND_URL", "http://localhost:8080")
+API_URL = f"{BACKEND_BASE}/ask"
 
 st.title("Watsonx.ai Q&A Tester")
 
@@ -25,7 +26,7 @@ if st.button("Ask"):
         else:
             # Mostrar respuesta
             st.subheader("Answer")
-            st.write(data["answer"])
+            st.text_area("Answer", value=data["answer"], height=300)
             
             st.subheader("Sources")
             for i, src in enumerate(data["sources"], 1):
