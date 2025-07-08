@@ -1,2 +1,6 @@
 source-backend/.env
 .env
+
+# Ignorar la base de datos local de ChromaDB
+chroma_db/
+chroma_db;C/

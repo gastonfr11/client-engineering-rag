@@ -35,23 +35,28 @@ Components:
 * **pdfplumber** to extract and chunk PDF text
 * **Watsonx.ai** for embedding generation and language model inference
 * **ChromaDB** containerized vector database (Docker)
-* **Docker Compose** to orchestrate backend + ChromaDB
+* **Streamlit** frontend for interactive UI
+* **Docker Compose** to orchestrate backend, frontend, and ChromaDB
 
 ## 3. Repository Structure
 
 ```
 .
 ├── assets/               # PDF documentation (watsonx.ai guide)
-├── docker-compose.yml    # Orchestrates backend + ChromaDB containers
-├── .env.example          # Environment variable template
+├── docker-compose.yml    # Orchestrates backend + ChromaDB + frontend containers
+├──images/
 ├── source/
 │   ├── back-end/         # Backend service (FastAPI)
-│   │   ├── app.py
-│   │   ├── index_docs.py
-│   │   ├── test_ask.py
+│   │   ├── app.py               # Endpoints
+│   │   ├── index_docs.py        # Indexation of de document
+|   |   ├──.example.env          # Environment variable template
+│   │   ├── test_ask.py          # Manual test
 │   │   ├── requirements.txt
 │   │   └── Dockerfile
-│   └── front-end/        # (Optional) Frontend application
+│   └── front-end/        # Streamlit frontend application
+│       ├── app.py
+│       ├── requirements.txt
+│       └── Dockerfile
 └── README.md             # This document
 ```
 
@@ -60,6 +65,7 @@ Components:
 ### 4.1. Prerequisites
 
 * Docker & Docker Compose
+* Local environment capable of running containers.
 * Python 3.11+ (for local index and tests)
 * IBM Watsonx.ai credentials (URL, Project ID, API key)
 
@@ -74,42 +80,42 @@ Components:
    WATSONX_APIKEY=
    ```
 
-### 4.3. Local Python Setup (indexing & testing)
+### 4.3. Single Command Launch (Docker Compose)
+
+From the project root, build and start all services (backend, frontend, ChromaDB) in detached mode:
+(Make sure you have docker running)
+
+```bash
+docker-compose up --build
+```
+
+This command will launch:
+
+* **chroma** container on port 8000
+* **backend** container on port 8080
+* **frontend** (Streamlit) container on port 8501
+
+### 4.4. Local Python Setup (indexing & testing)
+
+If you prefer local setup for indexing and tests:
 
 ```bash
 cd source/back-end
 python -m venv venv
 # PowerShell:
-.
-venv\Scripts\Activate.ps1
+. .\venv\Scripts\Activate.ps1
 # CMD:
 # venv\Scripts\activate.bat
 pip install -r requirements.txt
 python index_docs.py   # Extracts, chunks, embeds, and indexes the PDF
 ```
 
-### 4.4. Docker Setup (runtime)
-
-From the project root:
-
-```bash
-docker-compose up --build -d
-```
-
-This launches:
-
-* **chroma** container on port 8000
-* **backend** container on port 8080
-
 ## 5. Usage
 
 ### 5.1. Healthcheck (ChromaDB)
 
 ```bash
-# Using curl.exe
-curl.exe -i http://localhost:8000/api/v2/healthcheck
-# Or PowerShell:
-Invoke-RestMethod http://localhost:8000/api/v2/healthcheck
+curl -i http://localhost:8000/api/v2/healthcheck
 ```
 
 ### 5.2. Verify Indexed Chunks
@@ -118,38 +124,42 @@ Invoke-RestMethod http://localhost:8000/api/v2/healthcheck
 python -c "import chromadb; c=chromadb.HttpClient(host='http://localhost:8000'); col=c.get_collection('watsonx_docs'); print('Chunks:', col.count())"
 ```
 
-### 5.3. Ask a Question
-
-```bash
-# Using PowerShell here-string + Invoke-RestMethod
-echo @'
-{'"question"':'"What is Watsonx.ai?"','"k"':3}
-'@ > body.json
-Invoke-RestMethod -Uri http://localhost:8080/ask -Method POST -Body (Get-Content body.json -Raw) -ContentType 'application/json'
-```
-
-Or run the Python test script:
+### 5.3. Ask a Question (API)
 
 ```bash
 python test_ask.py
 ```
 
+Or via curl/PowerShell:
+
+```bash
+curl -X POST http://localhost:8080/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What is Watsonx.ai?","k":3}'
+```
+
+### 5.4. Frontend UI
+
+Open your browser to:
+
+```
+http://localhost:8501
+```
+
+Interactively type questions and view answers with source citations.
+
 ## 6. Technical Decisions & Best Practices
 
 * **Chunk Size**: \~100 words to respect embedding model limits
 * **Vector Store**: ChromaDB for lightweight, local Docker deployment
-* **Models**: `ibm/granite-embedding-107m-multilingual` for embeddings; an IBM Granite instruct model for inference
+* **Models**: `ibm/granite-embedding-107m-multilingual` for embeddings; IBM Granite instruct for inference
 * **Security**: All credentials loaded via environment variables; no secrets in code
 * **Containerization**: Docker Compose for multi-service orchestration
 * **Standards**: Secure coding per OWASP Quick Reference
 
-## 7. (Optional) Frontend
+## 7. Delivery
 
-A minimal UI can be built using Streamlit or React in `source/front-end/`. Questions must be in English, and the UI will display the answer and source chunks.
-
-## 8. Delivery
-
-* Submit project `.zip` (without `venv/` or `.env`) via email.
+* Submit project `.zip` (excluding `venv/` and `.env`) via email.
 * Include **README.md** and all source under `source/`.
 * Provide a \~10-minute demo video in MP4, showcasing:
 

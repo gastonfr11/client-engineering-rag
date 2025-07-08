@@ -36,14 +36,14 @@ except Exception:
 
 #LOCALIZAR PDF (para poder acceder de forma dinámica)
 
-#sube dos carpetas para ir a la raíz
+#sube una carpeta para ir a la raíz
 BASE_DIR   = Path(__file__).parent
 
 #assets_dir es la carpeta assets que está en la raíz. La idea es listar todos los PDF, idealmente tiene que haber uno solo.
 assets_dir = BASE_DIR.parent / "assets"
 pdf_files = list(assets_dir.glob("*.pdf"))
 if not pdf_files:
-    raise FileNotFoundError(f"No encontré ningún PDF en {assets_dir}")
+    raise FileNotFoundError(f"Missing PDF in {assets_dir}")
 if len(pdf_files) > 1:
     print("There is more than 1 PDF in assets, using the first one found")
 pdf_file = pdf_files[0]
@@ -52,7 +52,7 @@ print(f"Using PDF: {pdf_file.name}")
 # Parámetro de tamaño
 max_words = 100
 
-# 1) Generar lista de tuplas (page_num, texto_chunk)
+# Generar lista de tuplas (page_num, texto_chunk)
 chunks_with_pages = []
 with pdfplumber.open(pdf_file) as pdf:
     for page_num, page in enumerate(pdf.pages, start=1):
@@ -64,11 +64,11 @@ with pdfplumber.open(pdf_file) as pdf:
 
 print(f"Generated {len(chunks_with_pages)} chunks of ~{max_words} words.")
 
-# 2) Pedir embeddings solo del texto
+# Pedir embeddings solo del texto
 texts = [chunk for _, chunk in chunks_with_pages]
 embeddings = embedder.embed_documents(texts)
 
-# 3) Subir cada chunk junto con su página al metadata
+# Subir cada chunk junto con su página al ChromaDB
 for idx, ((page_num, chunk), emb) in enumerate(zip(chunks_with_pages, embeddings)):
     collection.add(
         ids=[f"chunk_{idx}"],

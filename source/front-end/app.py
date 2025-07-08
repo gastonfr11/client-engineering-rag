@@ -9,7 +9,7 @@ st.title("Watsonx.ai Q&A Tester")
 
 #Inputs de usuario
 question = st.text_area("Enter your question about Watsonx.ai", height=100)
-k = st.slider("Number of passages to retrieve (k)", min_value=1, max_value=10, value=3)
+k = st.slider("Number of sources to retrieve (k)", min_value=1, max_value=10, value=3)
 
 if st.button("Ask"):
     if not question.strip():

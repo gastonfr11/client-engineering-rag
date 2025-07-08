@@ -14,8 +14,6 @@ WATSONX_URL     = os.getenv("WATSONX_URL")
 WATSONX_APIKEY  = os.getenv("WATSONX_APIKEY")
 WATSONX_PROJECT = os.getenv("WATSONX_PROJECT_ID")
 
-
-
 #conexión a ChromaDB
 CHROMA_HOST = os.getenv("CHROMA_HOST", "http://localhost:8000")
 
