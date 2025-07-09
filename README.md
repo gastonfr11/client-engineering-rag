@@ -95,21 +95,6 @@ This command will launch:
 * **backend** container on port 8080
 * **frontend** (Streamlit) container on port 8501
 
-### 4.4. Local Python Setup (indexing & testing)
-
-If you prefer local setup for indexing and tests:
-
-```bash
-cd source/back-end
-python -m venv venv
-# PowerShell:
-. .\venv\Scripts\Activate.ps1
-# CMD:
-# venv\Scripts\activate.bat
-pip install -r requirements.txt
-python index_docs.py   # Extracts, chunks, embeds, and indexes the PDF
-```
-
 ## 5. Usage
 
 ### 5.1. Healthcheck (ChromaDB)
@@ -122,20 +107,6 @@ curl -i http://localhost:8000/api/v2/healthcheck
 
 ```bash
 python -c "import chromadb; c=chromadb.HttpClient(host='http://localhost:8000'); col=c.get_collection('watsonx_docs'); print('Chunks:', col.count())"
-```
-
-### 5.3. Ask a Question (API)
-
-```bash
-python test_ask.py
-```
-
-Or via curl/PowerShell:
-
-```bash
-curl -X POST http://localhost:8080/ask \
-  -H "Content-Type: application/json" \
-  -d '{"question":"What is Watsonx.ai?","k":3}'
 ```
 
 ### 5.4. Frontend UI
@@ -163,16 +134,9 @@ While the current MVP meets the core requirements, there are several areas that 
 
 Multi-Document Support: Enable indexing and retrieval across multiple PDFs or document formats (Word, Markdown, etc.) for broader coverage.
 
-Contextual Conversation: Implement session-level context tracking to handle follow-up questions and maintain dialogue state between turns.
-
 Incremental Indexing: Allow dynamic updates to the vector store so new documents or revisions can be ingested without re-indexing the entire corpus.
-
-Advanced Reranking: Integrate a learned reranker or hybrid retrieval strategy to further boost answer precision for edge cases.
 
 Caching & Performance: Add a caching layer for frequent queries to reduce API calls to Watsonx.ai and speed up response times.
 
-Error Handling & Monitoring: Improve logging, metrics, and fallback behaviors to gracefully handle service failures or timeouts.
+User Interface Polish: Enhance the Streamlit frontend with richer UI components.
 
-User Interface Polish: Enhance the Streamlit frontend with richer UI components (e.g., feedback up/downvotes, scrollable source display, dark mode).
-
-Security Enhancements: Harden authentication/authorization for the API and secure data in transit/endpoints.

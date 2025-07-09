@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 import requests
+
 #Configuración de la URL de la API
 BACKEND_BASE = os.getenv("BACKEND_URL", "http://localhost:8080")
 API_URL = f"{BACKEND_BASE}/ask"
