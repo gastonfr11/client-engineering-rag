@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_ibm import WatsonxEmbeddings, WatsonxLLM
 from pathlib import Path
+from typing import List, Optional
 
 
 #carga variables de entorno
@@ -61,6 +62,7 @@ llm = WatsonxLLM(
 class Query(BaseModel):
     question: str
     k: int = 3   
+    history: Optional[List[str]] = None
 
 def cos_sim(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
@@ -99,17 +101,26 @@ def ask(q: Query):
     for i, (score, doc, meta) in enumerate(ranked, 1):
         print(f"[Rerank] #{i} score={score:.3f}, page={meta.get('page')}")
 
+    chat_log = ""
+    if q.history:
+        chat_log = "\n".join(q.history) + "\n\n"
+    else:
+        chat_log = ""
+
+    print(">>> CHAT LOG que llega al LLM:")
+    print(q.history) 
+
     # Construyo un prompt
     context = "\n\n---\n\n".join(docs)
-    prompt = f"""
-You are an AI assistant. Using ONLY the context below, write a detailed, well-structured answer in 2–3 paragraphs.
+    prompt = f"""{chat_log}You are an AI assistant.  
+Using ONLY the context below, write a detailed, well-structured answer in 2–3 paragraphs.
 
 --- CONTEXT BEGIN ---
 {context}
 --- CONTEXT END ---
 
-QUESTION: {q.question}
-"""
+User: {q.question}
+Assistant:"""
 
     # Generación
     response = llm.generate([prompt])
@@ -125,4 +136,5 @@ QUESTION: {q.question}
         else:
             sources.append(f"Page {page}")
     
-    return {"answer": answer, "sources": sources}
+    new_history = (q.history or []) + [f"User: {q.question}", f"Assistant: {answer}"]
+    return {"answer": answer, "sources": sources, "history": new_history}
