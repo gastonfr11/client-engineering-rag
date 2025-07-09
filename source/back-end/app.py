@@ -1,5 +1,6 @@
 import os
 import chromadb
+import numpy as np
 
 from fastapi import FastAPI, HTTPException
 from ibm_watsonx_ai.metanames import GenTextParamsMetaNames
@@ -61,6 +62,9 @@ class Query(BaseModel):
     question: str
     k: int = 3   
 
+def cos_sim(a: np.ndarray, b: np.ndarray) -> float:
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
 @app.post("/ask")
 def ask(q: Query):
     # Embedding de la pregunta
@@ -69,7 +73,7 @@ def ask(q: Query):
     # Búsqueda semántica (solo traigo metadatos)
     results = collection.query(
         query_embeddings=[q_emb],
-        n_results=q.k,
+        n_results=max(q.k, 10),
         include=["documents", "metadatas"]
     )
     print(">>> RAW METADATAS:", results["metadatas"])
@@ -79,6 +83,21 @@ def ask(q: Query):
     if not docs:
         raise HTTPException(404, "No documents found.")
     
+     # Re-embedea cada documento
+    doc_embs = embedder.embed_documents(docs)
+
+    # Calcula similitudes
+    scores = [cos_sim(q_emb, d_emb) for d_emb in doc_embs]
+
+    # Reordena por score descendente
+    ranked = sorted(zip(scores, docs, metas), key=lambda x: x[0], reverse=True)
+
+    # Toma los top k
+    top_k = ranked[: q.k ]
+    _, docs, metas = zip(*top_k)
+
+    for i, (score, doc, meta) in enumerate(ranked, 1):
+        print(f"[Rerank] #{i} score={score:.3f}, page={meta.get('page')}")
 
     # Construyo un prompt
     context = "\n\n---\n\n".join(docs)
